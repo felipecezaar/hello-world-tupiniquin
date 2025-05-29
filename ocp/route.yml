@@ -1,0 +1,10 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: hello-world
+spec:
+  to:
+    kind: Service
+    name: hello-world
+  port:
+    targetPort: 8081
