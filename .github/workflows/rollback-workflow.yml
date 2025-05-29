@@ -1,0 +1,86 @@
+name: Rollback Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'SHA of the commit to revert'
+        required: true
+
+jobs:
+  create-rollback-branch:
+    runs-on: ubuntu-latest
+    outputs:
+      branch_name: ${{ steps.create_branch.outputs.branch_name }}
+
+    steps:
+    - name: Checkout main branch
+      uses: actions/checkout@v3
+      with:
+        ref: main
+        fetch-depth: 0
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "actions@github.com"
+        git config --local user.name "GitHub Actions"
+
+    - name: Validate commit SHA
+      run: |
+        if ! git rev-parse --verify ${{ github.event.inputs.commit_sha }} &>/dev/null; then
+          echo "Error: Invalid commit SHA"
+          exit 1
+        fi
+
+    - name: Create rollback branch
+      id: create_branch
+      run: |
+        BRANCH_NAME="rollback-$(date +'%Y%m%d%H%M%S')"
+        git checkout -b $BRANCH_NAME
+        echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+        echo "Branch criada: $BRANCH_NAME"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push rollback branch
+      run: |
+        git push origin ${{ steps.create_branch.outputs.branch_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Revert commit
+      run: |
+        git revert ${{ github.event.inputs.commit_sha }} --no-edit
+        git push origin HEAD
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  merge-rollback:
+    runs-on: ubuntu-latest
+    needs: create-rollback-branch
+
+    steps:
+    - name: Checkout main branch
+      uses: actions/checkout@v3
+      with:
+        ref: main
+        fetch-depth: 0
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "actions@github.com"
+        git config --local user.name "GitHub Actions"
+
+    - name: Merge rollback into main
+      run: |
+        git fetch origin ${{ needs.create-rollback-branch.outputs.branch_name }}
+        git merge --no-ff origin/${{ needs.create-rollback-branch.outputs.branch_name }} -m "Merge rollback branch (revert commit ${{ github.event.inputs.commit_sha }})"
+        git push origin main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Delete rollback branch
+      run: |
+        git push origin --delete ${{ needs.create-rollback-branch.outputs.branch_name }} || echo "Branch deletion failed (might already be deleted)"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
