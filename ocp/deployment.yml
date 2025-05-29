@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
       - name: hello-world
-        image: tupiniquinproject/hello-world
+        image: tupiniquinproject/hello-world:latest
         ports:
         - containerPort: 8081
