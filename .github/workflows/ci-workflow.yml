@@ -16,15 +16,30 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          fetch-tags: true  # Garante que todas as tags sejam baixadas
+
+      - name: List existing tags (debug)
+        run: git tag -l
 
       - name: Get next version tag
         id: get_tag
         run: |
+          # Força o fetch de todas as tags remotas
+          git fetch --tags
+          
+          # Obtém a última tag ou usa 0.0.0 se não existir
           latest_tag=$(git describe --tags --match '0.0.*' --abbrev=0 2>/dev/null || echo "0.0.0")
-          IFS='.' read -r -a version_parts <<< "$latest_tag"
+          echo "Latest tag found: $latest_tag"
+          
+          # Remove prefixo 'v' se existir e divide a versão
+          clean_tag=${latest_tag#v}
+          IFS='.' read -r -a version_parts <<< "$clean_tag"
+          
+          # Incrementa o patch version
           patch=${version_parts[2]}
           new_patch=$((patch + 1))
           new_tag="0.0.$new_patch"
+          
           echo "New tag: $new_tag"
           echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
 
