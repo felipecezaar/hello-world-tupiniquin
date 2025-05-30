@@ -23,40 +23,47 @@ jobs:
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
 
-      - name: Calculate new version
+      - name: Get all tags from remote
+        run: git fetch --tags --force
+
+      - name: Debug - List all tags
+        run: git tag -l --sort=-v:refname
+
+      - name: Calculate next version
         id: tag_version
         run: |
-          # Busca todas as tags remotas
-          git fetch --tags
+          # Lista todas as tags no padrão 0.0.* ordenadas por versão
+          latest_tag=$(git tag -l '0.0.*' --sort=-v:refname | head -n 1)
           
-          # Encontra a última tag ou usa 0.0.0 se não existir
-          latest_tag=$(git describe --tags --match '0.0.*' --abbrev=0 2>/dev/null || echo "0.0.0")
-          echo "Current tag: $latest_tag"
+          if [ -z "$latest_tag" ]; then
+            # Se não existir nenhuma tag, começa com 0.0.1
+            new_tag="0.0.1"
+            echo "No existing tags found, starting with $new_tag"
+          else
+            echo "Latest tag found: $latest_tag"
+            # Extrai o número da versão
+            IFS='.' read -r -a version_parts <<< "${latest_tag#v}"
+            patch=${version_parts[2]}
+            new_patch=$((patch + 1))
+            new_tag="0.0.$new_patch"
+            echo "Next tag will be: $new_tag"
+          fi
           
-          # Incrementa a versão
-          IFS='.' read -r -a parts <<< "${latest_tag#v}"
-          new_patch=$((parts[2] + 1))
-          new_tag="0.0.$new_patch"
-          
-          echo "New tag: $new_tag"
           echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
 
-      - name: Create and push Git tag (only if new)
+      - name: Create and push new tag
         run: |
           new_tag=${{ steps.tag_version.outputs.new_tag }}
+          echo "Creating tag: $new_tag"
           
-          # Verifica se a tag já existe localmente
-          if git rev-parse -q --verify "refs/tags/$new_tag" >/dev/null; then
-            echo "Tag $new_tag already exists locally, skipping creation"
+          # Verifica se a tag já existe (prevenção extra)
+          if git rev-parse "$new_tag" >/dev/null 2>&1; then
+            echo "ERROR: Tag $new_tag already exists!"
+            exit 1
           else
-            # Verifica se a tag existe no remote
-            if git ls-remote --tags origin "refs/tags/$new_tag" | grep -q "$new_tag"; then
-              echo "Tag $new_tag already exists on remote, skipping creation"
-            else
-              git tag $new_tag
-              git push origin $new_tag
-              echo "Git tag $new_tag created and pushed"
-            fi
+            git tag "$new_tag"
+            git push origin "$new_tag"
+            echo "Successfully created and pushed tag $new_tag"
           fi
 
   docker_build:
