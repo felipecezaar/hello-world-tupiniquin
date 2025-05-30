@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
       - name: hello-world
-        image: felipeacezar/hello-world:0.0.4
+        image: felipeacezar/hello-world:0.0.3
         ports:
         - containerPort: 8081
