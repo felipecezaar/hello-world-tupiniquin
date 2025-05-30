@@ -25,10 +25,5 @@ jobs:
         run: |
           sed -i "s|image: felipeacezar/hello-world:.*|image: felipeacezar/hello-world:${{ inputs.new_tag }}|" ./apps/base/deployment.yaml
           git add ./apps/base/deployment.yaml
-          git commit -m "Update image tag to ${{ inputs.new_tag }} [skip ci]" || echo "No changes"
+          git commit -m "Update image tag to ${{ inputs.new_tag }} [ci skip]" || echo "No changes"
           git push
-
-      - name: Create and push new Git tag
-        run: |
-          git tag ${{ inputs.new_tag }}
-          git push origin ${{ inputs.new_tag }}
