@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       new_tag:
-        description: 'New Docker tag'
+        description: 'New Application Tag'
         required: true
         type: string
 
