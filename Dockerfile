@@ -8,7 +8,7 @@ WORKDIR /app
 RUN pip install Flask
 
 # Crie um arquivo Python que inicia um servidor Flask simples
-RUN echo 'from flask import Flask\napp = Flask(__name__)\n\n@app.route("/")\ndef hello():\n    return "Hello, World! By: Felipe Cezar, Sarah, Fabio v0.0.2"\n\nif __name__ == "__main__":\n    app.run(host="0.0.0.0", port=8081)' > app.py
+RUN echo 'from flask import Flask\napp = Flask(__name__)\n\n@app.route("/")\ndef hello():\n    return "Hello, World! By: Felipe Cezar v0.0.0"\n\nif __name__ == "__main__":\n    app.run(host="0.0.0.0", port=8081)' > app.py
 
 # Exponha a porta em que a aplicação irá rodar
 EXPOSE 8081
